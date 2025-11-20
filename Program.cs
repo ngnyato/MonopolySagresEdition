@@ -2,8 +2,8 @@
     public static void Main() {
         GameController gc = new GameController();
         while (true) {
-            string line = Console.ReadLine();
-            if(line == "") {
+            string? line = Console.ReadLine();
+            if(line == "" || line == null) {
                 break;
             }
             string[] commands = line.Split(" ");
