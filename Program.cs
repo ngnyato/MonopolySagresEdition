@@ -1,42 +1,71 @@
-﻿public class Program {
-    public static void Main() {
+﻿public class Program
+{
+    public static void Main()
+    {
         GameController gc = new GameController();
-        while (true) {
+        while (true)
+        {
             string? line = Console.ReadLine();
-            if(line == "" || line == null) {
-                break;
+            if (line.Length == 0 || line == null)
+            {
+                Console.Clear();
+                continue;
             }
-            string[] commands = line.Split(" ");
-            if (commands[0] == "RJ") {
-                string Name = commands[1];
-                if (gc.HasPlayer(Name)) {
-                    Console.WriteLine("Jogador Existente.");
-                } 
-                else {
-                    gc.RegisterPlayer(Name);
-                    Console.WriteLine("Jogador registado com sucesso.");
-                }
-            } else if (commands[0] == "LJ") {
-                if(!gc.HasPlayers()) {
-                    Console.WriteLine("Sem jogadores registados.");
-                }
-            } else if (commands[0] == "IJ") {
+            
+            string[] commandLine = line.Split(" ");
+            if (commandLine.Length < 2)
+            {
+                Console.Clear();
+                continue;
+            }
+                 
+            string cmd = commandLine[0].ToUpper();
+            string playerName = commandLine[1];
+            
+            switch (cmd)
+            {
+                   
+                case "RJ":
+                    
+                    if (gc.DoPlayerExists(playerName))
+                    {
+                        Console.WriteLine("Jogador Existente.");
+                    }
+                    else
+                    {
+                        gc.RegisterPlayer(playerName);
+                        Console.WriteLine("Jogador registado com sucesso.");
+                    }
+                    break;
 
-            } else if (commands[0] == "LD") {
+                    case "LJ": 
+                        if (!gc.HasPlayers())
+                        {
+                            Console.WriteLine("Sem jogadores registados.");
+                        }
 
-            } else if (commands[0] == "CE") {
-
-            } else if (commands[0] == "DJ") {
-
-            } else if (commands[0] == "TT") {
-
-            } else if (commands[0] == "PA") {
-
-            } else if (commands[0] == "CC") {
-
-            } else if (commands[0] == "TC") {
+                        break;
 
             }
+            
+            // } else if (commands[0] == "IJ") {
+            //
+            // } else if (commands[0] == "LD") {
+            //
+            // } else if (commands[0] == "CE") {
+            //
+            // } else if (commands[0] == "DJ") {
+            //
+            // } else if (commands[0] == "TT") {
+            //
+            // } else if (commands[0] == "PA") {
+            //
+            // } else if (commands[0] == "CC") {
+            //
+            // } else if (commands[0] == "TC") {
+
         }
     }
 }
+    
+

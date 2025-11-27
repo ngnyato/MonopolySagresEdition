@@ -1,6 +1,6 @@
 public class GameController {
     private Dictionary<string,Player> players = new Dictionary<string,Player>();
-    public bool HasPlayer(string playerName) {
+    public bool DoPlayerExists(string playerName) {
         return players.Keys.Contains(playerName);
     }
 
