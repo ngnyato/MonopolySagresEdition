@@ -37,7 +37,7 @@ public class Program
                         Console.WriteLine("Jogador Existente.");
                     }
                     else
-                    {
+                        {
                         gc.RegisterPlayer(playerName);
                         Console.WriteLine("Jogador registado com sucesso.");
                     }
@@ -54,8 +54,7 @@ public class Program
                         }
                         break;
 
-                    case "IJ":
-                            // TODO Implementar iniciar jogo
+                    case "IJ": //TODO : Please clean this mess of a case
                             if (commandLine.Length < 3 || commandLine.Length > 6) // minimo 2 jogadores maximo 5 jogadores
                          {
                               Console.WriteLine("Instrução inválida.");
@@ -89,11 +88,24 @@ public class Program
                          Console.WriteLine("Jogo iniciado com sucesso.");
                     
                          break;
+
+
+
+                         case "LD":
+                             if (!gc.IsGameInProgress())
+                             {
+                                 Console.WriteLine("Não existe um jogo em curso.");
+                                 break;
+                             }
+                                
+                             gc.RollDices();
+                             
+                             break;
                             
 
 
                         default:
-                            Console.WriteLine("Instrução inválida.a");
+                            Console.WriteLine("Instrução inválida.");
                             break;
 
             }

@@ -5,6 +5,13 @@ public class Player {
     public int losses;
     public int ties;
     public double money; // TODO: check if this is needed.
+    public int posX, posY;
+
+
+
+    
+
+
     // FIXME: some fields are missing;
 
     public Player(string Name) {

@@ -5,7 +5,9 @@ public class GameController
     {
         private Dictionary<string, Player> players = new Dictionary<string, Player>();
         bool gameInProgress = false;
+        int turnIndex = 0;
         private List<Player> playersInGame = new List<Player>();
+
 
         public bool DoPlayerExists(string playerName)
         {
@@ -22,7 +24,7 @@ public class GameController
             return players.Count > 0; // return true se a condiçao implicita for verdadeira !!
         }
 
-        public void ListPlayers()
+        public void ListPlayers() // TODO : melhorar a apresentaçao daqui para baixo
         {
                 
                     foreach (var player in players.Values)
@@ -41,7 +43,7 @@ public class GameController
                     this.playersInGame.Add(players[playersGameList[i]]);
                 }
            
-            // implemetar add dinheiro etc etc
+            //TODO implemetar add dinheiro etc etc
                 gameInProgress = true;
             }
         
@@ -49,4 +51,36 @@ public class GameController
         {
             return gameInProgress;
         }
+        
+        public int RollDices()
+    {
+        if (turnIndex >= playersInGame.Count)
+        {
+            turnIndex = 0;
+        }
+
+        Random x = new Random();// check if this is needed
+        Random y = new Random();// check if this is needed 
+        int moveX = x.Next(-3,4); // Min incluido e Max Excluido, gera um numero random 
+        int moveY = y.Next(-3,4);
+
+        int posX = posX + moveX;
+        int posY = posY + moveY;
+        playersInGame[turnIndex].posX = posX;
+        playersInGame[turnIndex].posY = posY;
+
+    
+        Console.WriteLine("#DEBUG Posicao do jogador" + playersInGame[turnIndex].Name + "X E Y RESPETIVAMENTE" + posX, posY);
+
+        
+        
+       
+       
+       
+       
+       
+       
+       
+        turnIndex++;
+    }
     }
