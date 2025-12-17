@@ -3,16 +3,22 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Intrinsics.X86;
 using System.Runtime.Serialization.Formatters;
 #nullable disable
+namespace MonopolyC;
 public class GameController
     {
         private Dictionary<string, Player> players = new Dictionary<string, Player>();
-        bool gameInProgress = false;
+        public bool gameInProgress = false;
         public string landedHouse = "";
         public int turnIndex = 0;
+        public int freeParkValue = 0;  
         public List<Player> playersInGame = new List<Player>();
         public Player CurrentPlayer => playersInGame[turnIndex];
+        public CardManager cardManager = new CardManager();
     
-        
+        public GameController()
+        {
+            cardManager = new CardManager();
+        }
 
         public bool DoPlayerExists(string playerName)
         {
@@ -57,7 +63,7 @@ public class GameController
             return gameInProgress;
         }
         
-        public void RollDices(int? testMoveX, int? testMoveY)
+        public void RollDices(int? testMoveX, int? testMoveY)   
     {
         if (turnIndex >= playersInGame.Count)
         turnIndex = 0;
@@ -75,9 +81,11 @@ public class GameController
         {
              
          Random rnd = new Random();
-        //Console.WriteLine($"#DEBUG Posicao do jogador antes  {p.Name} X={p.posX} Y={p.posY}");
-         moveX = rnd.Next(-3,4); // Min incluido e Max Excluido, gera um numero random 
-         moveY = rnd.Next(-3,4);   // TODO resolver a situacao de sair o 0
+         int[] moves = { -3, -2, -1, 1, 2, 3 };
+
+         moveX = moves[rnd.Next(moves.Length)];
+         moveY = moves[rnd.Next(moves.Length)];
+   // TODO resolver a situacao de sair o 0
         }
 
         int posX = p.posX + moveX;
@@ -132,11 +140,14 @@ public class GameController
            switch(landedHouse.houseName)
             {
                 case "FreePark":
-                Console.WriteLine($"Saiu {moveX}/{moveY} - espaço {landedHouse.houseName}. Espaço FreePark. Jogador recebe (valorNoFreeParjk)."); // TODO missing implementation 
+                Console.WriteLine($"Saiu {moveX}/{moveY} - espaço {landedHouse.houseName}. Espaço FreePark. Jogador recebe {freeParkValue}."); // TODO missing implementation 
+                p.Receive(freeParkValue);
+                freeParkValue = 0;
                     break;
 
                 case "Police":
-                Console.WriteLine($"Saiu {moveX}/{moveY} - espaço {landedHouse.houseName}. Espaço Police. Jogador preso.");// TODO : Missing Implementation
+                Console.WriteLine($"Saiu {moveX}/{moveY} - espaço {landedHouse.houseName}. Espaço Police. Jogador preso.");
+                SendPlayerToPrison(p);
                     break;  
 
                 case "Prison":
@@ -144,7 +155,8 @@ public class GameController
                     break;
 
                 case "BackToStart":
-                Console.WriteLine($"Saiu {moveX}/{moveY} - espaço {landedHouse.houseName}. Espaço BackToStart. Peça colocada no espaço Start."); // TODO missing implementation 
+                Console.WriteLine($"Saiu {moveX}/{moveY} - espaço {landedHouse.houseName}. Espaço BackToStart. Peça colocada no espaço Start."); cardManager.MovePlayerTo(p, "Start");
+                p.Receive(200);
                     break;
 
                 case "Chance":
@@ -157,6 +169,12 @@ public class GameController
                 p.hasDemandingAction = true;
                     break;
 
+                case "LuxTax":
+                Console.WriteLine($"Saiu {moveX}/{moveY} - espaço {landedHouse.houseName}. Espaço LuxTax. Jogador paga 75.");
+                p.Pay(75);
+                freeParkValue += 75;
+                    break;
+
 
                 default:
                     break;
@@ -166,8 +184,6 @@ public class GameController
 
         
         
-        Console.WriteLine($"DEBUG Saiu x {posX} y {posY} caiu na {landedHouse.houseName}");
-         Console.WriteLine($"DEBUG Moveu x {moveX} y {moveY} caiu na {landedHouse.houseName}");
     }
 
     public void BuySpace ()
@@ -201,87 +217,324 @@ public class GameController
            p.OwnedHouses.Add(h);
     }
     
-    public void FinishTurn(string pName)
-    {
-        Player p = CurrentPlayer;
 
-
-        if (gameInProgress == false)
+        public void FinishTurn(string pName)
         {
-            Console.WriteLine("Não existe jogo em curso.");
+            Player p = CurrentPlayer;
+
+
+            if (gameInProgress == false)
+            {
+                Console.WriteLine("Não existe jogo em curso.");
+                return;
+            }
+
+            if (pName != p.Name)
+            {
+                Console.WriteLine("Não é o turno do jogador indicado.");
+                return;
+            }
+
+            if (p.hasDemandingAction == true)
+            {
+                Console.WriteLine("O jogador ainda tem ações a fazer.");
+                return;
+            }
+
+
+
+                p.hasRolledDices = false;
+                p.hasDemandingAction = false;
+                p.hasToPayRent = false;
+            
+                if (p.isBankrupt)
+                {
+                    EndTurn();
+                }
+
+                else 
+                {
+                turnIndex++;
+                if (turnIndex >= playersInGame.Count) 
+                turnIndex = 0;
+                Console.WriteLine($"Turno terminado. Novo turno do jogador {playersInGame[turnIndex].Name}.");
+               
+
+                
+            }
         }
 
-         if (pName != p.Name)
-        {
-            Console.WriteLine("Não é o turno do jogador indicado.");
-        }
-
-        if (p.hasDemandingAction == true)
-        {
-            Console.WriteLine("O jogador ainda tem ações a fazer.");
-        }
-
-        if (p.hasDemandingAction == false)
-        {
-            turnIndex++;
-            if (turnIndex >= playersInGame.Count) turnIndex = 0;
-            Console.WriteLine($"Turno terminado. Novo turno do jogador {playersInGame[turnIndex].Name}.");
-        }
-    }
 
 
-
-    public void PayDueRent()
+    public void PayDueRent(string pName)
     {
         Player p = CurrentPlayer;
         House h = p.CurrentHouse;
 
         double antes = h.housePrice * 0.25 + h.housePrice * 0.75 * h.houseNumber;
-        int renda = (int)Math.Round(antes,2);
+        int renda = (int)Math.Round(antes);
        
 
 
-        if (CurrentPlayer.hasToPayRent == false && CurrentPlayer.hasDemandingAction == false)
+       if (!gameInProgress)
         {
-            Console.WriteLine("Não é necessário pagar aluguel.");
+          Console.WriteLine("Não existe um jogo em curso.");
+        return;
+       }
+
+      if (!playersInGame.Contains(CurrentPlayer))
+       {
+          Console.WriteLine("Jogador não participa no jogo em curso.");
+         return;
+       }
+
+      if (pName != CurrentPlayer.Name)
+       {
+          Console.WriteLine("Não é a vez do jogador.");
+          return;
+        }
+
+       if (!p.hasToPayRent)
+       {
+          Console.WriteLine("Não é necessário pagar aluguel.");
+          return;
+       }
+
+        else 
+        {
+            p.Pay(renda);
+            h.houseOwner.Receive(renda);
+            p.hasToPayRent = false;
+            p.hasDemandingAction = false;
+        }
+    }
+
+    public bool OwnsFullColorSet(Player p, string color)
+{
+    foreach (House h in BoardManager.Houses)
+    {
+        if (h != null &&
+            h.houseType == "Property" &&
+            h.color == color &&
+            h.houseOwner != p)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+    public void EndTurn()
+{
+    Player p = CurrentPlayer;
+
+    if (p.money < 0)
+    {
+        p.isBankrupt = true;
+    }
+
+    if (p.isBankrupt)
+    {
+        Console.WriteLine($"{p.Name} faliu e foi eliminado.");
+        playersInGame.RemoveAt(turnIndex);
+
+        // se só sobrar um jogador
+        if (playersInGame.Count == 1)
+        {
+            Console.WriteLine($"Jogo terminado. Vencedor: {playersInGame[0].Name}");
+            gameInProgress = false;
+            playersInGame[0].wins++;
+            foreach (var player in playersInGame)
+            {
+                if (player != playersInGame[0])
+                {
+                    player.losses++;
+                }
+            }
             return;
         }
-        if (renda > p.money)
-        {
-            Console.WriteLine("O jogador não tem dinheiro suficiente.");
-            // TODO : implementar falencia
-            return; 
-        }
-        if (gameInProgress == false)
+
+        // NÃO avançar turno aqui
+        if (turnIndex >= playersInGame.Count)
+            turnIndex = 0;
+
+        return;
+    }
+
+   
+   
+    if (turnIndex >= playersInGame.Count)
+        turnIndex = 0;
+}
+
+    public void BuildHouse(string pName, string desiredHouse)
+    {
+        Player p = CurrentPlayer;
+        House h = BoardManager.FindHouseByName(desiredHouse);
+
+        if (!gameInProgress)
         {
             Console.WriteLine("Não existe um jogo em curso.");
             return;
         }
-        bool isInGame = playersInGame.Any(p => p.Name == CurrentPlayer.Name); // verifica se o jogador faz parte do jogo em curso
-        if (!isInGame)
+        if (!playersInGame.Any(p => pName == p.Name))
         {
             Console.WriteLine("Jogador não participa no jogo em curso.");
             return;
         }
-        if (p.Name != playersInGame[turnIndex].Name)
+        if (pName != CurrentPlayer.Name)
         {
             Console.WriteLine("Não é a vez do jogador.");
             return;
         }
-        else 
+        if (h == null || p.CurrentHouse != h)
         {
-            p.money = p.money - renda;
-            h.houseOwner.money = h.houseOwner.money + renda;
-            p.hasToPayRent = false;
-            p.hasDemandingAction = false;
+            Console.WriteLine("Não é possível comprar casa no espaço indicado.");
+            return;
         }
-
-
-
-        
+        if (h.houseType != "Property" )
+        {
+            Console.WriteLine("Não é possível comprar casa no espaço indicado.");
+            return;
+        }
+        if (h.houseOwner != p)
+        {
+            Console.WriteLine("Não é possível comprar casa no espaço indicado.");
+            return;
+        }
+        if (!OwnsFullColorSet(p, h.color))
+        {
+            Console.WriteLine("O jogador não possui todos os espaços da cor.");
+            return;
+        }
+        if (p.money < h.buildingPrice)
+        {
+            Console.WriteLine("O jogador não possui dinheiro suficiente.");
+            return;
+        }
+        if (h.houseNumber >= 4)
+        {
+            Console.WriteLine("Não é possível comprar casa no espaço indicado.");
+            return;
+        }
+            p.Pay(h.buildingPrice);
+            h.houseNumber++;
+            Console.WriteLine("Casa adquirida.");
     }
 
 
+public void SendPlayerToPrison(Player p)
+{
+    House prison = BoardManager.FindHouseByName("Prison");
+
+    cardManager.MovePlayerTo(p, "Prison");
+
+    p.isInPrison = true;
+    p.prisonTurns = 0;
+}
+
+public void HandlePrisonTurn(Player p, int? testMoveX, int? testMoveY)
+{
+    int d1, d2;
+
+    if (testMoveX.HasValue && testMoveY.HasValue)
+    {
+        d1 = testMoveX.Value;
+        d2 = testMoveY.Value;
+    }
+    else
+    {
+        Random rnd = new Random();
+        d1 = rnd.Next(1, 7);
+        d2 = rnd.Next(1, 7);
+    }
+
+    if (d1 == d2)
+    {
+        Console.WriteLine("Double! Sai da prisão.");
+        p.isInPrison = false;
+        p.prisonTurns = 0;
+
+        // agora joga normalmente
+        RollDices(d1, d2);
+        return;
+    }
+
+    p.prisonTurns++;
+
+    if (p.prisonTurns >= 3)
+    {
+        Console.WriteLine("Cumpriu 3 turnos. Sai da prisão.");
+        p.isInPrison = false;
+        p.prisonTurns = 0;
+    }
+    else
+    {
+        Console.WriteLine("Permanece na prisão.");
+    }
+
+    EndTurn();
+}
+
+public void PrintGameDetails()
+{
+    if (!gameInProgress)
+    {
+        Console.WriteLine("Não existe jogo em curso.");
+        return;
+    }
+
+    int height = BoardManager.Houses.GetLength(0); // linhas (y)
+    int width  = BoardManager.Houses.GetLength(1); // colunas (x)
+
+    for (int y = 0; y < height; y++)
+    {
+        string line = "";
+
+        for (int x = 0; x < width; x++)
+        {
+            House cell = BoardManager.Houses[y, x];
+            if (cell == null)
+            {
+                line += "".PadRight(22);
+                continue;
+            }
+
+            // Nome base do espaço
+            string cellText = cell.houseName;
+
+            // Dono do espaço (se for propriedade/linha e tiver dono)
+            if ((cell.houseType == "Property" || cell.houseType == "Train") && cell.houseOwner != null)
+            {
+                cellText += $" ({cell.houseOwner.Name}" + (cell.houseNumber > 0 ? $" - {cell.houseNumber}" : "") + ")";
+            }
+
+            // Jogadores presos: aparecem como "detentores" de Prison (em vez de ocupantes)
+            if (cell.houseName == "Prison")
+            {
+                var jailed = playersInGame.Where(p => p.isInPrison).Select(p => p.Name).ToList();
+                if (jailed.Count > 0)
+                    cellText += $" ({string.Join(", ", jailed)})";
+            }
+
+            // Ocupantes do espaço (quem está na célula)
+            var occupants = playersInGame
+                .Where(p => !p.isInPrison && p.posX == x && p.posY == y)
+                .Select(p => p.Name)
+                .ToList();
+
+            if (occupants.Count > 0)
+                cellText += " " + string.Join(" ", occupants);
+
+            // padding para ficar legível em grelha
+            line += cellText.PadRight(22);
+        }
+
+        Console.WriteLine(line.TrimEnd());
+    }
+
+    Console.WriteLine($"{CurrentPlayer.Name} - {CurrentPlayer.money}");
+}
 
 
     

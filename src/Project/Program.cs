@@ -1,21 +1,29 @@
 ﻿using System.ComponentModel.Design;
+using System.Dynamic;
+using System.Linq.Expressions;
+using System.Reflection.Metadata;
 #nullable disable
+namespace MonopolyC;
 public class Program
 {
+    
+     
+    
     public static void Main()
     {
         
         string[] commandLine; 
         BoardManager.InitializeBoard();
         GameController gc = new GameController();
+       
         while (true)
         {
             string line = Console.ReadLine();
-            if (line.Length == 0 || line == null) // proteçao contra input nulo
-            {
-                Console.Clear();  // TODO O jogo deve acabar com uma linha em branco, isto é apenas para testes!!!
-                continue;
-            }
+            //if (line.Length == 0 || line == null) // proteçao contra input nulo
+            //{
+              //  Console.Clear();  //
+             //   continue;
+            //}
             
             commandLine = line.Split(" ", StringSplitOptions.RemoveEmptyEntries); // divide o input entre o comando e o jogador 
             
@@ -129,22 +137,28 @@ public class Program
 
                                 int moveX = int.Parse(commandLine[2]);
                                 int moveY = int.Parse(commandLine[3]);
-
+                                if (gc.CurrentPlayer.isInPrison)
+                                {
+                                    gc.HandlePrisonTurn(gc.CurrentPlayer, moveX, moveY);
+                                    continue;
+                                }
+                                else 
                                 gc.RollDices(moveX,moveY);
                               }
                               else if ( gc.CurrentPlayer.hasRolledDices == false)
                               {
+                                if (gc.CurrentPlayer.isInPrison)
+                                {
+                                    gc.HandlePrisonTurn(gc.CurrentPlayer, null, null);
+                                    continue;
+                                }
+                                else
                                 gc.RollDices(null,null);
                               }
             
                             
                              break;
                             
-
-
-                             default: 
-                               Console.WriteLine("Instrução inválida.");
-                            break;
                         
                         case "CE":
                         if (commandLine.Length != 2)
@@ -165,10 +179,62 @@ public class Program
                                    continue;
                                 }
 
-                        gc.CurrentPlayer.hasRolledDices = false;   
+                          
                         gc.FinishTurn(commandLine[1]);
                         
                         break;
+
+                         case "PA":
+                         
+                        if (commandLine.Length != 2)
+                                {
+                                   
+                                    Console.WriteLine("Instrução inválida.");
+                                   continue;
+                                }
+
+
+                            gc.PayDueRent(commandLine[1]);
+
+                        
+                        break;
+
+                            case "CC":
+
+                        if (commandLine.Length != 3)
+                                {
+                                   
+                                    Console.WriteLine("Instrução inválida.");
+                                   continue;
+                                }
+
+                            gc.BuildHouse(commandLine[1], commandLine[2]);
+                            break;
+                           
+                            case "DJ":
+                               gc.PrintGameDetails();
+                              break;
+
+                            case "TC":
+                               if (commandLine.Length != 2)
+                               {
+                                   Console.WriteLine("Instrução inválida.");
+                                   continue;
+                               }  
+                               gc.cardManager.DrawCard(commandLine[1], gc);
+                               break;
+
+                            default: 
+                               Console.WriteLine("Instrução inválida.");
+                            break;
+                             
+
+
+
+
+                            
+
+
 
 
                 

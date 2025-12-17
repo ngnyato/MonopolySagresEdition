@@ -8,12 +8,14 @@ public class House
     public Player houseOwner { get; set;} 
     public int housePrice { get; set;}
     public int houseRent { get; set;}
-    public int houseNumber  {
-get; set;}
+    public int houseNumber  = 0;
+    public int buildingPrice => (int)Math.Round(housePrice * 0.6);
+    public string color { get; set; }
+
     public int x { get; set;}
     public int y { get; set;}
 
-    public House( string houseName, string houseType, Player houseOwner, int housePrice, int houseRent, int x, int y) 
+    public House( string houseName, string houseType, Player houseOwner, int housePrice, int houseRent, int x, int y, string color = null) 
     {
         this.houseName = houseName;
         this.houseType = houseType;
